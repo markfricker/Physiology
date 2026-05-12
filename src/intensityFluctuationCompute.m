@@ -82,8 +82,8 @@ for iZ = 1:nZ
     switch method
 
         case 'dff'
-            series = Fnorm - 1;                % ΔF/F₀
-            series(:,:) = series(:,:) .* mask; % zero background pixels
+            series = Fnorm - 1;        % ΔF/F₀  [nY nX nT]
+            series = series .* mask;   % zero background; mask [nY nX] broadcasts over T
             sumMap = mean(series, 3);
 
         case 'variance'

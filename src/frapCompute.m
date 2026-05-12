@@ -124,7 +124,12 @@ for iZ = 1:nZ
 
     % ---- per-pixel normalised series ------------------------------------
     Fnorm = (im - Fbg) ./ spanSafe;                    % [nY nX nT]
-    Fnorm(~validMask, :) = NaN;
+    % Use 3-D linear indexing to set background pixels to NaN.
+    % IMPORTANT: do NOT use 2-subscript indexing (e.g. Fnorm(~mask, :)) on a
+    % 3-D array — MATLAB collapses it to 2-D for that call and the assignment
+    % permanently reshapes Fnorm, breaking the reshape at the store-back step.
+    invMask3D = repmat(~validMask, [1 1 nT]);           % [nY nX nT] logical
+    Fnorm(invMask3D) = NaN;
 
     % Pre-bleach frames clamped to 1 (by definition fully recovered before bleach)
     Fnorm(:,:,preWin) = 1;
