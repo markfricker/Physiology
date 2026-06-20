@@ -85,7 +85,7 @@ for iZ = 1:nZ
     num = reshape(imIn(:,:,nCh,iZ,:), nY, nX, nT);  % [nY nX nT]
     den = reshape(imIn(:,:,dCh,iZ,:), nY, nX, nT);
 
-    % ---- autofluorescence correction ------------------------------------
+    % ---- autofluorescence correction -----------------------------------
     if afUse
         af  = reshape(imIn(:,:,afCh,iZ,:), nY, nX, nT);
         num = max(0, num - afScaleN * af);
