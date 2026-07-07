@@ -9,7 +9,8 @@ function [ratioRgb, oxdRgb, ehRgb] = ...
 %
 %   ratioRgb – raw channel ratio R = Ch_num / Ch_den;   sequential colormap
 %   oxdRgb   – oxidised fraction OxD ∈ [0,1];           sequential colormap
-%   ehRgb    – reduction potential E_hh (mV);           diverging colormap
+%   ehRgb    – reduction potential E_hh (mV);           sequential colormap
+%              (configurable independently -- see p.ehColormap)
 %
 % oxdRgb and ehRgb are empty ([]) when oxdIn or ehIn are empty.
 %
@@ -24,12 +25,14 @@ function [ratioRgb, oxdRgb, ehRgb] = ...
 %   ehIn           – [nY nX nC nZ nT] single; Eh (mV) from redoxCalibrate,
 %                   or [] to skip ehRgb.
 %   p              – parameter struct:
-%                     p.ratioMin   – lower clip for ratio display (default 0.1)
-%                     p.ratioMax   – upper clip for ratio display (default 1.0)
-%                     p.ehMin      – lower clip for Eh display (mV; default −400)
-%                     p.ehMax      – upper clip for Eh display (mV; default −200)
-%                     p.whiteUse   – logical; white-background encoding
-%                                    (default true)
+%                     p.ratioMin      – lower clip for ratio display (default 0.1)
+%                     p.ratioMax      – upper clip for ratio display (default 1.0)
+%                     p.ehMin         – lower clip for Eh display (mV; default −400)
+%                     p.ehMax         – upper clip for Eh display (mV; default −200)
+%                     p.whiteUse      – logical; white-background encoding
+%                                       (default true)
+%                     p.ratioColormap – colorcet name for ratio/OxD (default 'R2')
+%                     p.ehColormap    – colorcet name for Eh (default 'R2')
 %
 % OUTPUTS
 %   ratioRgb – [nY nX nC nZ nT 3] uint8; colour-coded ratio image.
@@ -37,11 +40,11 @@ function [ratioRgb, oxdRgb, ehRgb] = ...
 %   ehRgb    – [nY nX nC nZ nT 3] uint8; colour-coded Eh image, or [].
 %
 % COLOURMAPS
-%   Ratio and OxD: colorcet('R2') if available; else a red-yellow-white
-%                  sequential ramp.
-%   Eh (diverging): colorcet('D7') if available; else a red-white-blue ramp.
-%   For other probe types, the caller can replace intensityImage/maskIn but
-%   the colourmap assignment matches the standard grx1-roGFP2 convention.
+%   Default is colorcet('R2') for all three (perceptually-uniform
+%   sequential/rainbow) if colorcet is on the path; caller can override via
+%   p.ratioColormap/p.ehColormap with any valid colorcet name. Falls back to
+%   a built-in sequential ramp if colorcet isn't available (name overrides
+%   are then ignored, since there's no catalog to look them up in).
 %
 % DEPENDENCIES
 %   physiologyConvertToRgb  (Physiology_sandbox/utils/)
@@ -55,12 +58,18 @@ ehMax    = sf(p, 'ehMax',   -200);
 whiteUse = logical(sf(p, 'whiteUse', true));
 
 % ---- colourmaps ---------------------------------------------------------
+% A diverging map (e.g. 'D7') visually centres its neutral/white point at
+% the MIDPOINT of [mn,mx], not at Eh=0 -- physiologyConvertToRgb has no
+% zero-crossing concept, it's a plain linear map. For an all-negative Eh
+% range that wastes most of the palette on one side and can read as a flat
+% single hue. Default is now the same sequential map used for ratio/OxD
+% ('R2') unless the caller asks for something else.
 if exist('colorcet', 'file')
-    cMapSeq  = colorcet('R2');   % ratio and OxD: perceptually uniform seq.
-    cMapDiv  = colorcet('D7');   % Eh: diverging blue-white-red
+    cMapSeq = colorcet(sf(p, 'ratioColormap', 'R2'));
+    cMapDiv = colorcet(sf(p, 'ehColormap',    'R2'));
 else
-    cMapSeq  = sequentialColormap(256);
-    cMapDiv  = divergingColormap(256);
+    cMapSeq = sequentialColormap(256);
+    cMapDiv = sequentialColormap(256);
 end
 
 % ---- ratio RGB ----------------------------------------------------------
@@ -75,10 +84,10 @@ else
     oxdRgb = [];
 end
 
-% ---- Eh RGB (Eh in mV; bipolar → diverging colormap, dark background) ---
+% ---- Eh RGB (Eh in mV) ---------------------------------------------------
 if ~isempty(ehIn)
     ehRgb = physiologyConvertToRgb(ehIn, intensityImage, maskIn, ...
-        ehMin, ehMax, false, cMapDiv);
+        ehMin, ehMax, whiteUse, cMapDiv);
 else
     ehRgb = [];
 end
@@ -94,17 +103,6 @@ r = ones(n, 1);
 g = linspace(0, 1, n)';
 b = linspace(0, 0.8, n)';
 cmap = [r, g, b];
-end
-
-% =========================================================================
-function cmap = divergingColormap(n)
-%DIVERGINGCOLORMAP  Blue–white–red diverging colormap with n levels.
-% Centre (white) maps to the midpoint value; same as opticalFlowRgb fallback.
-half  = floor(n / 2);
-red   = [linspace(0.7, 1, half), linspace(1, 1, half)]';
-green = [linspace(0.0, 1, half), linspace(1, 0, half)]';
-blue  = [linspace(0.0, 1, half), linspace(1, 0.7, half)]';
-cmap  = flipud([red, green, blue]);
 end
 
 % =========================================================================
