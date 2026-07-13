@@ -85,9 +85,12 @@ else
 end
 
 % ---- Eh RGB (Eh in mV) ---------------------------------------------------
+% Eh is always negative-valued (mV) but isn't a true bipolar quantity (no
+% meaningful zero-crossing within its measured range) -- bipolar=false so
+% whiteUse's white-background mode isn't overridden by the sign of ehMin.
 if ~isempty(ehIn)
     ehRgb = physiologyConvertToRgb(ehIn, intensityImage, maskIn, ...
-        ehMin, ehMax, whiteUse, cMapDiv);
+        ehMin, ehMax, whiteUse, cMapDiv, false);
 else
     ehRgb = [];
 end

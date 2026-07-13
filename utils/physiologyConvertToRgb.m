@@ -1,8 +1,8 @@
-function rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, mn, mx, whiteUse, cMap)
+function rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, mn, mx, whiteUse, cMap, bipolar)
 %PHYSIOLOGYCONVERTTORGB  Colour-encode a scalar physiology field using HSV.
 %
 %   rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, ...
-%                                mn, mx, whiteUse, cMap)
+%                                mn, mx, whiteUse, cMap, bipolar)
 %
 % Maps a per-pixel scalar quantity (e.g. dF/F, ratio, CV, normalised recovery)
 % to a colour-coded RGB image.  The colour (hue) encodes the scalar field;
@@ -34,9 +34,19 @@ function rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, mn, m
 %                   Values outside [mn, mx] are clamped.
 %   whiteUse       – logical; true = white background encoding (see above).
 %   cMap           – [N×3] double colourmap matrix.
+%   bipolar        – (optional) logical; selects which whiteUse=true sub-mode
+%                   applies (see above). Defaults to (mn < 0) for backward
+%                   compatibility. Pass explicitly to decouple the choice from
+%                   the sign of mn -- e.g. Eh (mV) is always negative-valued
+%                   but isn't a true bipolar quantity, so callers rendering it
+%                   should pass bipolar=false to get the white-background mode.
 %
 % OUTPUT
 %   rgb – [nY nX nC nZ nT 3] uint8; colour-coded image.
+
+if nargin < 8 || isempty(bipolar)
+    bipolar = mn < 0;
+end
 
 [nY, nX, nC, nZ, nT] = size(scalarField);
 [~,  ~,  mC, mZ, mT] = size(maskIn);
@@ -65,7 +75,7 @@ for iT = 1:nT
 
             % ---- compose HSV --------------------------------------------
             if whiteUse
-                if mn < 0
+                if bipolar
                     % bipolar (e.g. ΔF/F with baseline negative): dark bg
                     hsvIm(:,:,3) = sqrt(V) * 0.625 + 0.375;
                 else
