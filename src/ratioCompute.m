@@ -42,7 +42,9 @@ function [ratioSeries, ratioMean, calibratedSeries, calibratedMean] = ...
 %
 % OUTPUTS
 %   ratioSeries      – [nY nX 1 nZ nT] single; per-frame ratio R = num/den.
-%                      Pixels where den ≤ 0 after AF correction are NaN.
+%                      Pixels where den ≤ 0 after AF correction are NaN;
+%                      a negative ratio (e.g. num < 0 after correction) is
+%                      clamped to 0.
 %   ratioMean        – [nY nX 1 nZ] single; time-averaged ratio.
 %   calibratedSeries – [nY nX 1 nZ nT] single; calibrated quantity per frame.
 %                      All-NaN when p.calibration.method = 'none'.
@@ -100,6 +102,11 @@ for iZ = 1:nZ
 
     R = num ./ denSafe;                           % [nY nX nT]
     R(badPx) = NaN;
+    % A negative ratio is physically meaningless (e.g. the numerator channel
+    % went negative after autofluorescence/background subtraction) -- clamp
+    % to zero rather than let a sign-flipped value propagate downstream.
+    % Matches AnalyzER_v2's original erRatio(erRatio<0)=0 behaviour.
+    R(R < 0) = 0;
 
     Rmean = mean(R, 3, 'omitnan');                % [nY nX]
 
