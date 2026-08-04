@@ -33,6 +33,10 @@ function [ratioRgb, oxdRgb, ehRgb] = ...
 %                                       (default true)
 %                     p.ratioColormap – colorcet name for ratio/OxD (default 'R2')
 %                     p.ehColormap    – colorcet name for Eh (default 'R2')
+%                     p.intensityMin  – lower brightness-channel stretch
+%                                       point, [0,1] (default 0)
+%                     p.intensityMax  – upper brightness-channel stretch
+%                                       point, [0,1] (default 1)
 %
 % OUTPUTS
 %   ratioRgb – [nY nX nC nZ nT 3] uint8; colour-coded ratio image.
@@ -56,6 +60,11 @@ ratioMax = sf(p, 'ratioMax',  1.0);
 ehMin    = sf(p, 'ehMin',   -400);
 ehMax    = sf(p, 'ehMax',   -200);
 whiteUse = logical(sf(p, 'whiteUse', true));
+% Shared brightness-channel clip range -- same setting applied to all
+% three outputs (ratio/OxD/Eh), since they all share the same
+% intensityImage.
+intensityMin = sf(p, 'intensityMin', 0);
+intensityMax = sf(p, 'intensityMax', 1);
 
 % ---- colourmaps ---------------------------------------------------------
 % A diverging map (e.g. 'D7') visually centres its neutral/white point at
@@ -74,12 +83,12 @@ end
 
 % ---- ratio RGB ----------------------------------------------------------
 ratioRgb = physiologyConvertToRgb(ratioIn, intensityImage, maskIn, ...
-    ratioMin, ratioMax, whiteUse, cMapSeq);
+    ratioMin, ratioMax, whiteUse, cMapSeq, [], intensityMin, intensityMax);
 
 % ---- OxD RGB (OxD ∈ [0,1] always unipolar) -----------------------------
 if ~isempty(oxdIn)
     oxdRgb = physiologyConvertToRgb(oxdIn, intensityImage, maskIn, ...
-        0, 1, whiteUse, cMapSeq);
+        0, 1, whiteUse, cMapSeq, [], intensityMin, intensityMax);
 else
     oxdRgb = [];
 end
@@ -90,7 +99,7 @@ end
 % whiteUse's white-background mode isn't overridden by the sign of ehMin.
 if ~isempty(ehIn)
     ehRgb = physiologyConvertToRgb(ehIn, intensityImage, maskIn, ...
-        ehMin, ehMax, whiteUse, cMapDiv, false);
+        ehMin, ehMax, whiteUse, cMapDiv, false, intensityMin, intensityMax);
 else
     ehRgb = [];
 end

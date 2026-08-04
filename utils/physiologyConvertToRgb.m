@@ -1,8 +1,9 @@
-function rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, mn, mx, whiteUse, cMap, bipolar)
+function rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, mn, mx, whiteUse, cMap, bipolar, intensityMin, intensityMax)
 %PHYSIOLOGYCONVERTTORGB  Colour-encode a scalar physiology field using HSV.
 %
 %   rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, ...
-%                                mn, mx, whiteUse, cMap, bipolar)
+%                                mn, mx, whiteUse, cMap, bipolar, ...
+%                                intensityMin, intensityMax)
 %
 % Maps a per-pixel scalar quantity (e.g. dF/F, ratio, CV, normalised recovery)
 % to a colour-coded RGB image.  The colour (hue) encodes the scalar field;
@@ -40,12 +41,33 @@ function rgb = physiologyConvertToRgb(scalarField, intensityImage, maskIn, mn, m
 %                   the sign of mn -- e.g. Eh (mV) is always negative-valued
 %                   but isn't a true bipolar quantity, so callers rendering it
 %                   should pass bipolar=false to get the white-background mode.
+%   intensityMin, intensityMax – (optional) scalar in [0,1]; explicit
+%                   low/high input range the brightness (Value) channel is
+%                   stretched against (via imadjust) after mat2gray's own
+%                   per-plane [0,1] normalisation. Defaults to [0 1] (no
+%                   extra stretch) if omitted -- pixels at or below
+%                   intensityMin render black, at or above intensityMax
+%                   render full brightness. Previously this stage used
+%                   imadjust's own single-argument auto-stretch
+%                   (effectively ignoring any caller-specified range,
+%                   which is why the RatioRgb panel's Intensity Min/Max
+%                   fields never had any visible effect).
 %
 % OUTPUT
 %   rgb – [nY nX nC nZ nT 3] uint8; colour-coded image.
 
 if nargin < 8 || isempty(bipolar)
     bipolar = mn < 0;
+end
+if nargin < 9 || isempty(intensityMin)
+    intensityMin = 0;
+end
+if nargin < 10 || isempty(intensityMax)
+    intensityMax = 1;
+end
+if intensityMin >= intensityMax
+    intensityMin = 0;
+    intensityMax = 1;
 end
 
 [nY, nX, nC, nZ, nT] = size(scalarField);
@@ -70,7 +92,7 @@ for iT = 1:nT
             hsvIm = rgb2hsv(ind2rgb(uint8(255 .* im), cMap));
 
             % ---- value channel from intensity image ---------------------
-            V = imadjust(im2single(mat2gray(double(img))));
+            V = imadjust(im2single(mat2gray(double(img))), [intensityMin intensityMax]);
             V(~msk) = 0;
 
             % ---- compose HSV --------------------------------------------
