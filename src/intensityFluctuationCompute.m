@@ -93,7 +93,7 @@ for iZ = 1:nZ
 
         case 'variance'
             series = Fnorm .* mask;            % normalised series
-            sumMap = var(im, 0, 3);            % summary is raw variance
+            sumMap = var(im, 1, 3);            % summary is raw variance (population, /N -- every acquired frame is the full population, not a sample)
 
         case 'cv'
             series = Fnorm .* mask;

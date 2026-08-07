@@ -68,9 +68,12 @@ classdef testRedoxCalibrate < matlab.unittest.TestCase
             ratioIn = tc.gradientRatio(4, 32, 3, 0.05, 1.1);  % deliberately outside [rMin rMax]
             p = tc.defaultParams();
             [oxd, ~] = redoxCalibrate(ratioIn, p);
-            tc.verifyGreaterThanOrEqual(double(min(oxd(:))), 0.001, ...
+            % Compare against the single-precision representations of the
+            % clamp bounds -- oxd is single, and single(0.999) round-trips
+            % to a value fractionally above the double literal 0.999.
+            tc.verifyGreaterThanOrEqual(double(min(oxd(:))), double(single(0.001)), ...
                 'OxD should be ≥ 0.001 (clamped).');
-            tc.verifyLessThanOrEqual(double(max(oxd(:))), 0.999, ...
+            tc.verifyLessThanOrEqual(double(max(oxd(:))), double(single(0.999)), ...
                 'OxD should be ≤ 0.999 (clamped).');
         end
 
