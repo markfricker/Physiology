@@ -15,7 +15,9 @@ function [fluctuationSeries, fluctuationMean, baselineMap] = ...
 %   p    – parameter struct:
 %            p.channelIdx     – scalar integer; channel to process.
 %                               Output arrays span all nC input channels but
-%                               only channelIdx is computed; others remain zero.
+%                               only channelIdx is computed; others remain
+%                               NaN (not computed -- distinct from a genuine
+%                               zero measurement).
 %            p.method         – 'variance' | 'cv' | 'dff'
 %                               'variance': temporal variance per pixel.
 %                               'cv':       coefficient of variation (σ/μ).
@@ -30,7 +32,7 @@ function [fluctuationSeries, fluctuationMean, baselineMap] = ...
 %                       'dff':             ΔF/F₀ = (F(t)−F₀)/F₀ time series.
 %                       'variance'/'cv':   F(t)/F₀ (baseline-normalised
 %                                          intensity) at each frame.
-%                       Only p.channelIdx channel is populated; others zero.
+%                       Only p.channelIdx channel is populated; others NaN.
 %   fluctuationMean   – [nY nX nC nZ] single; spatial summary map.
 %                       'dff':      temporal mean of ΔF/F₀.
 %                       'variance': temporal variance of raw intensity.
@@ -60,9 +62,12 @@ bf(2)         = max(bf(1), min(nT, bf(2)));
 
 imIn = im2single(imIn);
 
-fluctuationSeries = zeros(nY, nX, nC, nZ, nT, 'single');
-fluctuationMean   = zeros(nY, nX, nC, nZ,     'single');
-baselineMap       = zeros(nY, nX, nC, nZ,     'single');
+% NaN-initialised (not zero) -- only cIdx gets computed, and a stored zero
+% for the other channels would be indistinguishable from a genuine
+% zero-fluctuation measurement to every downstream consumer.
+fluctuationSeries = nan(nY, nX, nC, nZ, nT, 'single');
+fluctuationMean   = nan(nY, nX, nC, nZ,     'single');
+baselineMap       = nan(nY, nX, nC, nZ,     'single');
 
 for iZ = 1:nZ
 

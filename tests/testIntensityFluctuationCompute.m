@@ -57,15 +57,17 @@ classdef testIntensityFluctuationCompute < matlab.unittest.TestCase
             tc.verifyEqual(class(bl),     'single');
         end
 
-        function testUnselectedChannelsAreZero(tc)
-            % channelIdx=1 → channel 2 output should remain zero
+        function testUnselectedChannelsAreNaN(tc)
+            % channelIdx=1 -> channel 2 was never computed -- NaN (not
+            % zero), so downstream mean/join operations don't mistake
+            % "not computed" for a genuine zero-fluctuation measurement.
             imIn = rand(16, 16, 2, 1, 6, 'single');
             p = tc.defaultParams(); p.channelIdx = 1;
             [series, mn, bl] = intensityFluctuationCompute(imIn, p);
-            tc.verifyEqual(series(:,:,2,:,:), zeros(16,16,1,1,6,'single'), ...
-                'Unselected channel should be zero in series.');
-            tc.verifyEqual(mn(:,:,2,:), zeros(16,16,1,1,'single'));
-            tc.verifyEqual(bl(:,:,2,:), zeros(16,16,1,1,'single'));
+            tc.verifyTrue(all(isnan(series(:,:,2,:,:)),'all'), ...
+                'Unselected channel should be NaN in series.');
+            tc.verifyTrue(all(isnan(mn(:,:,2,:)),'all'));
+            tc.verifyTrue(all(isnan(bl(:,:,2,:)),'all'));
         end
 
     end

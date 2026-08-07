@@ -95,7 +95,14 @@ den_oxd = delta .* (rMax - R) + num_oxd;
 den_oxd(den_oxd <= 0) = eps('single');   % guard: only at rMin=rMax edge case
 
 oxdSeries = num_oxd ./ den_oxd;
+% MATLAB's two-argument min/max silently DROP a NaN operand instead of
+% propagating it (e.g. min(0.999, NaN) returns 0.999, not NaN) -- without
+% guarding this, a NaN-padded input (e.g. ratioIn NaN for a channel ratio
+% was never computed for) would get silently replaced by a fabricated
+% 0.999 "oxidised" value here, indistinguishable from real data downstream.
+nanMask = isnan(oxdSeries);
 oxdSeries = max(0.001, min(0.999, oxdSeries));   % avoid Nernst singularities
+oxdSeries(nanMask) = NaN;
 
 % ---- step 2: Nernst equation to mV --------------------------------------
 % E_hh = E0' − (RT/nF) × ln[(1−OxD)/OxD]   (natural log, result in mV)

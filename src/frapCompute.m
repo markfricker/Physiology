@@ -95,9 +95,12 @@ end
 nCh = 1;                                   % single channel
 Cidx_arr = cIdx;
 
-recoverySeries = zeros(nY, nX, nC, nZ, nT, 'single');
-recoveryMean   = zeros(nY, nX, nC, nZ,     'single');
-prebleachMap   = zeros(nY, nX, nC, nZ,     'single');
+% NaN-initialised (not zero) -- only cIdx gets computed, and a stored zero
+% for the other channels would be indistinguishable from a genuine
+% zero-recovery measurement to every downstream consumer.
+recoverySeries = nan(nY, nX, nC, nZ, nT, 'single');
+recoveryMean   = nan(nY, nX, nC, nZ,     'single');
+prebleachMap   = nan(nY, nX, nC, nZ,     'single');
 
 skCurv = NaN(nCh, nZ, nT, 'single');
 ciCurv = NaN(nCh, nZ, nT, 'single');
